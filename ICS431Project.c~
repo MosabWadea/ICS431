@@ -5,7 +5,7 @@
 #include <time.h>
 #include <sys/wait.h>
 #include <semaphore.h>
-#define NUMBER_OF_CUSTOMERS 5
+#define NUMBER_OF_CUSTOMERS 1
 #define NUMBER_OF_RESOURCES 3
 
 typedef struct
@@ -102,12 +102,12 @@ int request_resources(int customer_number, int request[]){
 	}
 		
 	if(flag1){
-		printf("req > need!!");
+		printf("req > need!!\n");
 		sem_post(&m);
 		return -1;
 	}
 	else if(flag2){
-		printf("req > available!! Deny");
+		printf("req > available!! Deny\n");
 		sem_post(&m);
 		return -1;
 	}
@@ -152,7 +152,7 @@ int release_resources(int customer_number, int release[]){
 		available[i]+=release[i];
 		Allocated[cn-1].resource[i]-=release[i];
 	}
-	printf("Customer %d released resources",cn);
+	printf("Customer %d released resources\n",cn);
 	sem_post(&m);
 	return 0;
 }
@@ -162,7 +162,9 @@ void *run(void *t)
 	int i;
 	int request[NUMBER_OF_RESOURCES],release[NUMBER_OF_RESOURCES];
 	int x=(int)t;
-	while(Need[x-1].resource[0]>0&&Need[x-1].resource[1]>0&&Need[x-1].resource[2]>0){
+	
+	int flag = 1;
+	do{
 		for(i=0;i<NUMBER_OF_RESOURCES;i++){
 			request[i]=rand()%Need[x-1].resource[i];
 		}
@@ -170,16 +172,22 @@ void *run(void *t)
 			printf("Customer %d request is for resourcses of type 1=%d, type2=%d, type3=%d is granted\n",x,request[0],request[1],request[2]);
 			sleep(2);
 			for(i=0;i<NUMBER_OF_RESOURCES;i++){
-				release[i]=rand()%Allocated[x-1].resource[i];
+				release[i] = rand()%Allocated[x-1].resource[i];
+				printf("release%d = %d\t allocate%d \n", i, release[i], Allocated[x-1].resource[i]);
 			}
 			release_resources(x,release);
 		}
-	}
+		int q;
+		for(q=0; q<NUMBER_OF_RESOURCES; q++){
+			flag += Need[x-1].resource[q];
+		}
+	}while(flag>0);
+	
 	for(i=0;i<NUMBER_OF_RESOURCES;i++){
 				release[i]=Allocated[x-1].resource[i];
 			}
 	release_resources(x,release);
-	printf("Customer %d terminated",x);
+	printf("Customer %d terminated\n",x);
 	pthread_exit(NULL);
 }
 int main(int argc, char *argv[]){
