@@ -110,15 +110,30 @@ int request_resources(int customer_number, int request[]){
 		pallocated[cn-1].type2_resouces = Allocated[cn-1].type2_resouces + request[1];
 		pallocated[cn-1].type3_resouces = Allocated[cn-1].type3_resouces + request[2];
 
-		for(t=0;t)
+		if(safetyAlgorithm(pavailable,pneed,pallocated)){
+			for(r=0; r<NUMBER_OF_RESOURCES; r++){
+			available[r] = pavailable[r];
+			}
+			Need=pneed;
+			Allocated=pallocated;
+			sem_post(&m);
+			return 0;
+		}
+		printf("the request is denied.\n");
 		sem_post(&m);
-		return 0;
+		return -1;
 
 	}
 }
 int release_resources(int customer_number, int release[]){
 	sem_wait(&m);
-	
+	int cn=customer_number;
+	int i;
+	for(i=0,i<NUMBER_OF_RESOURCES;i++){
+		available[i]+=release[i];
+		Allocated[cn-1].resource[i]-=release[i];
+	}
+	printf("Customer %d released resources",cn);
 	sem_post(&m);
 	return 0;
 }
