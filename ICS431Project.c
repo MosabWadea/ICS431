@@ -14,28 +14,13 @@ typedef struct
 	int type1_resouces;
 	int type2_resouces;
 	int type3_resouces; 
-}MaxRequestedResources;
-
-typedef struct
-{
-	int customer_number;
-	int type1_resouces;
-	int type2_resouces;
-	int type3_resouces; 
-}NeededResources;
+}Resources;
 
 
-typedef struct
-{
-	int customer_number;
-	int type1_resouces;
-	int type2_resouces;
-	int type3_resouces; 
-}AllocatedResources;
-
-MaxRequestedResources Max[NUMBER_OF_CUSTOMERS];
-AllocatedResources Allocated[NUMBER_OF_CUSTOMERS];
-NeededResources Need[NUMBER_OF_CUSTOMERS];
+Resources Max[NUMBER_OF_CUSTOMERS];
+Resources Allocated[NUMBER_OF_CUSTOMERS];
+Resources Need[NUMBER_OF_CUSTOMERS];
+int available[3]={0,0,0};
 sem_t m;
 
 void loadMax(){
@@ -82,13 +67,19 @@ void *run()
 	printf("The random number is %d\n",number);
 	pthread_exit((void *)number);
 }
-int main()
+int main(int argc, char *argv[])
 {
+	
+	
 	int i;
 	srand(time(0));
 	loadMax();
 	loadAllocated();
 	loadNeed();
+	for(i=0;i<argc;i++){
+	available[i-1]=atoi(argv[i]);
+}
+printf("type1=%d, type2=%d, type3=%d\n",available[0],available[1],available[2]);
 	for( i=0;i<5;i++){
 	printf("Max: cid=%d, t1=%d, t2=%d, t3=%d\n",Max[i].customer_number,Max[i].type1_resouces,Max[i].type2_resouces,Max[i].type3_resouces);
 	}
