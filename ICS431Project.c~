@@ -24,7 +24,6 @@ typedef struct
 	int type3_resouces; 
 }NeededResources;
 
-
 typedef struct
 {
 	int customer_number;
