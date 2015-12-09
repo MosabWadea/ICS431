@@ -11,9 +11,7 @@
 typedef struct
 {
 	int customer_number;
-	int type1_resouces;
-	int type2_resouces;
-	int type3_resouces; 
+	int resource[NUMBER_OF_RESOURCES];
 }Resources;
 
 
@@ -27,7 +25,7 @@ void loadMax(){
 int i;
 for(i=0;i<5;i++){
 	Max[i].customer_number=i+1;
-	Max[i].type1_resouces=rand()%10;
+	Max[i].type1_resouces=rand()%10; //update
 	Max[i].type2_resouces=rand()%10;
 	Max[i].type3_resouces=rand()%10;
 }
@@ -37,29 +35,92 @@ void loadNeed(){
 int i;
 for(i=0;i<5;i++){
 	Need[i].customer_number=Max[i].customer_number;
-	Need[i].type1_resouces=Max[i].type1_resouces;
+	Need[i].type1_resouces=Max[i].type1_resouces; //update
 	Need[i].type2_resouces=Max[i].type2_resouces;
 	Need[i].type3_resouces=Max[i].type3_resouces;
 }
 }
 
 void loadAllocated(){
-int i;
-for(i=0;i<5;i++){
-	Allocated[i].customer_number=i+1;
-	Allocated[i].type1_resouces=0;
-	Allocated[i].type2_resouces=0;
-	Allocated[i].type3_resouces=0;
+	int i;
+	for(i=0;i<5;i++){
+		Allocated[i].customer_number=i+1; //update
+		Allocated[i].type1_resouces=0;
+		Allocated[i].type2_resouces=0;
+		Allocated[i].type3_resouces=0;
+	}
 }
+
+int safetyAlgorithm(int work[],int need[], int allocated[]){
+	int finish[NUMBER_OF_CUSTOMERS];
+	int i, j;
+	
+	//init finish array
+	for(i=0;i<NUMBER_OF_CUSTOMERS;i++){
+		finish[i]=0;
+	}
+	
+	//safety algorithm
+	for(i=0;i<NUMBER_OF_CUSTOMERS;i++){
+		for(j=0; j<NUMBER_OF_CUSTOMERS; j++){			
+			if(finish[j]==0 && need[j].type1_resources<=work[0] && need[j].type2_resources<=work[1] && need[j].type3_resources<=work[2]){
+				int m;
+				for(m=0; m<NUMBER_OF_RESOURCES; m++)
+					work[m] += allocated[j].resource[m];
+				finish[j] = 1;
+				break;
+			}
+		}
+	}
+	
+	
+	int ret = 1;
+	for(i=0; i<NUMBER_OF_CUSTOMERS; i++){
+		ret = ret * finish[i];
+	}
+	return ret;
 }
 
 int request_resources(int customer_number, int request[]){
+	sem_wait(&m);
+	int cn=customer_number;
+	int t,r;
+	if(rquest[0]>Need[cn-1].type1_resouces || rquest[1]>Need[cn-1].type2_resouces || rquest[2]>Need[cn-1].type3_resouces){
+		printf("req > need!!");
+		sem_post(&m);
+		return -1;
+	}
+	else if(rquest[0]>available[0] || rquest[1]>available[1] || rquest[2]>available[2]){
+		printf("req > available!! Deny");
+		sem_post(&m);
+		return -1;
+	}
+	else{
+		int pavailable[3];
+		Resources pneed[NUMBER_OF_CUSTOMERS] = Need;
+		Resources pallocated[NUMBER_OF_CUSTOMERS] = Allocated;
+		for(r=0; r<NUMBER_OF_RESOURCES; r++){
+			pavailable[r] = available[r] - request[r];
+		}		
+		pneed[cn-1].type1_resouces = Need[cn-1].type1_resouces - request[0];
+		pneed[cn-1].type2_resouces = Need[cn-1].type2_resouces - request[1];
+		pneed[cn-1].type3_resouces = Need[cn-1].type3_resouces - request[2];
 
-return 0;
+		pallocated[cn-1].type1_resouces = Allocated[cn-1].type1_resouces + request[0];
+		pallocated[cn-1].type2_resouces = Allocated[cn-1].type2_resouces + request[1];
+		pallocated[cn-1].type3_resouces = Allocated[cn-1].type3_resouces + request[2];
+
+		for(t=0;t)
+		sem_post(&m);
+		return 0;
+
+	}
 }
 int release_resources(int customer_number, int release[]){
-
-return 0;
+	sem_wait(&m);
+	
+	sem_post(&m);
+	return 0;
 }
 
 void *run(void *t)
@@ -80,15 +141,17 @@ void *run(void *t)
 	printf("Customer %d terminated",x);
 	pthread_exit();
 }
-int main(int argc, char *argv[])
-{
-	
-	
+int main(int argc, char *argv[]){
 	int i;
 	srand(time(0));
 	loadMax();
 	loadAllocated();
 	loadNeed();
+	
+	//init semaphore
+	sem_init(&m, 0, 1);
+
+
 	/*for(i=0;i<argc;i++){
 	available[i-1]=atoi(argv[i]);
 }
@@ -110,16 +173,16 @@ for( i=0;i<5;i++){
 		pthread_create(&th[t], NULL, run, (void *)t+1);
 	}
 	
-	/*for(t = 0; t < MAX; t++)
+	for(t = 0; t < NUMBER_OF_CUSTOMERS; t++)
 	{
 		void* n;
-		printf("Joining thread %d\n", t);
 		pthread_join(th[t], &n);
-		sum=sum+(int)n;
 	
-	}*/
+	}
 	
-	printf("The sum = %d\n",sum);
 	pthread_exit(NULL);
-return 0;
+
+	//release sem
+	sem_destroy(&m);
+	return 0;
 }
