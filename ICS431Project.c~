@@ -146,16 +146,16 @@ void *run(void *t)
 {	
 	int i;
 	int x=(int)t;
-	while(Need[x-1].type1_resouces>0&&Need[x-1].type2_resouces>0&&Need[x-1].type3_resouces>0){
-		int request[3]={rand()%Need[x-1].type1_resouces,rand()%Need[x-1].type2_resouces,rand()%Need[x-1].type3_resouces};
+	while(Need[x-1].resource[0]>0&&Need[x-1].resource[1]>0&&Need[x-1].resource[2]>0){
+		int request[3]={rand()%Need[x-1].resource[0],rand()%Need[x-1].resource[1],rand()%Need[x-1].resource[2]};
 		if(!request_resources(x,request)){
 			printf("Customer %d request is for resourcses of type 1=%d, type2=%d, type3=%d is granted\n",x,request[0],request[1],request[2]);
 			sleep(2);
-			int release[3]={rand()%Allocated[x-1].type1_resouces,rand()%Allocated[x-1].type2_resouces,rand()%Allocated[x-1].type3_resouces};
+			int release[3]={rand()%Allocated[x-1].resource[0],rand()%Allocated[x-1].resource[1],rand()%Allocated[x-1].[2]};
 			release_resources(x,release);
 		}
 	}
-	int release[3]={Allocated[x-1].type1_resouces,Allocated[x-1].type2_resouces,Allocated[x-1].type3_resouces};
+	int release[3]={Allocated[x-1].resource[0],Allocated[x-1].resource[1],Allocated[x-1].resource[2]};
 	release_resources(x,release);
 	printf("Customer %d terminated",x);
 	pthread_exit();
@@ -170,20 +170,6 @@ int main(int argc, char *argv[]){
 	//init semaphore
 	sem_init(&m, 0, 1);
 
-
-	/*for(i=0;i<argc;i++){
-	available[i-1]=atoi(argv[i]);
-}
-printf("type1=%d, type2=%d, type3=%d\n",available[0],available[1],available[2]);
-	for( i=0;i<5;i++){
-	printf("Max: cid=%d, t1=%d, t2=%d, t3=%d\n",Max[i].customer_number,Max[i].type1_resouces,Max[i].type2_resouces,Max[i].type3_resouces);
-	}
-for( i=0;i<5;i++){
-	printf("Allocated: cid=%d, t1=%d, t2=%d, t3=%d\n",Allocated[i].customer_number,Allocated[i].type1_resouces,Allocated[i].type2_resouces,Allocated[i].type3_resouces);
-	}
-for( i=0;i<5;i++){
-	printf("Need: cid=%d, t1=%d, t2=%d, t3=%d\n",Need[i].customer_number,Need[i].type1_resouces,Need[i].type2_resouces,Need[i].type3_resouces);
-	}*/
 	pthread_t th[NUMBER_OF_CUSTOMERS];
 	int t;
 	for(t = 0; t < NUMBER_OF_CUSTOMERS; t++)
