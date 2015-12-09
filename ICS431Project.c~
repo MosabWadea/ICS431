@@ -11,9 +11,7 @@
 typedef struct
 {
 	int customer_number;
-	int type1_resouces;
-	int type2_resouces;
-	int type3_resouces; 
+	int resource[NUMBER_OF_RESOURCES];
 }Resources;
 
 
@@ -27,7 +25,7 @@ void loadMax(){
 int i;
 for(i=0;i<5;i++){
 	Max[i].customer_number=i+1;
-	Max[i].type1_resouces=rand()%10;
+	Max[i].type1_resouces=rand()%10; //update
 	Max[i].type2_resouces=rand()%10;
 	Max[i].type3_resouces=rand()%10;
 }
@@ -37,32 +35,50 @@ void loadNeed(){
 int i;
 for(i=0;i<5;i++){
 	Need[i].customer_number=Max[i].customer_number;
-	Need[i].type1_resouces=Max[i].type1_resouces;
+	Need[i].type1_resouces=Max[i].type1_resouces; //update
 	Need[i].type2_resouces=Max[i].type2_resouces;
 	Need[i].type3_resouces=Max[i].type3_resouces;
 }
 }
 
 void loadAllocated(){
-int i;
-for(i=0;i<5;i++){
-	Allocated[i].customer_number=i+1;
-	Allocated[i].type1_resouces=0;
-	Allocated[i].type2_resouces=0;
-	Allocated[i].type3_resouces=0;
-}
+	int i;
+	for(i=0;i<5;i++){
+		Allocated[i].customer_number=i+1; //update
+		Allocated[i].type1_resouces=0;
+		Allocated[i].type2_resouces=0;
+		Allocated[i].type3_resouces=0;
+	}
 }
 
 int safetyAlgorithm(int work[],int need[], int allocated[]){
 	int finish[NUMBER_OF_CUSTOMERS];
-	int i;
+	int i, j;
+	
+	//init finish array
 	for(i=0;i<NUMBER_OF_CUSTOMERS;i++){
 		finish[i]=0;
 	}
+	
+	//safety algorithm
 	for(i=0;i<NUMBER_OF_CUSTOMERS;i++){
-		if(finish[i]==0 && need[i].type1_resources<=work[0] && need[i].type2_resources<=work[1] && need[i].type3_resources<=work[2])
+		for(j=0; j<NUMBER_OF_CUSTOMERS; j++){			
+			if(finish[j]==0 && need[j].type1_resources<=work[0] && need[j].type2_resources<=work[1] && need[j].type3_resources<=work[2]){
+				int m;
+				for(m=0; m<NUMBER_OF_RESOURCES; m++)
+					work[m] += allocated[j].resource[m];
+				finish[j] = 1;
+				break;
+			}
+		}
 	}
-
+	
+	
+	int ret = 1;
+	for(i=0; i<NUMBER_OF_CUSTOMERS; i++){
+		ret = ret * finish[i];
+	}
+	return ret;
 }
 
 int request_resources(int customer_number, int request[]){
@@ -94,15 +110,30 @@ int request_resources(int customer_number, int request[]){
 		pallocated[cn-1].type2_resouces = Allocated[cn-1].type2_resouces + request[1];
 		pallocated[cn-1].type3_resouces = Allocated[cn-1].type3_resouces + request[2];
 
-		for(t=0;t)
+		if(safetyAlgorithm(pavailable,pneed,pallocated)){
+			for(r=0; r<NUMBER_OF_RESOURCES; r++){
+			available[r] = pavailable[r];
+			}
+			Need=pneed;
+			Allocated=pallocated;
+			sem_post(&m);
+			return 0;
+		}
+		printf("the request is denied.\n");
 		sem_post(&m);
-		return 0;
+		return -1;
 
 	}
 }
 int release_resources(int customer_number, int release[]){
 	sem_wait(&m);
-	
+	int cn=customer_number;
+	int i;
+	for(i=0,i<NUMBER_OF_RESOURCES;i++){
+		available[i]+=release[i];
+		Allocated[cn-1].resource[i]-=release[i];
+	}
+	printf("Customer %d released resources",cn);
 	sem_post(&m);
 	return 0;
 }
