@@ -79,7 +79,6 @@ int safetyAlgorithm(int work[],int need[], int allocated[]){
 		}
 	}
 	
-	
 	int ret = 1;
 	for(i=0; i<NUMBER_OF_CUSTOMERS; i++){
 		ret = ret * finish[i];
@@ -91,13 +90,23 @@ int request_resources(int customer_number, int request[]){
 	sem_wait(&m);
 	int cn=customer_number;
 	int t,r;
-	
-	if(rquest[0]>Need[cn-1].type1_resouces || rquest[1]>Need[cn-1].type2_resouces || rquest[2]>Need[cn-1].type3_resouces){
+	int x;
+	int flag1, flag2;
+	for(x=0; x<NUMBER_OF_RESOURCES; x++){
+		flag1 = 0;
+		flag2 = 0;
+		if(rquest[x]>Need[cn-1].resouce[x])
+			flag1 = 1;
+		if(rquest[x]>available[x])
+			flag2 = 1;
+	}
+		
+	if(flag1){
 		printf("req > need!!");
 		sem_post(&m);
 		return -1;
 	}
-	else if(rquest[0]>available[0] || rquest[1]>available[1] || rquest[2]>available[2]){
+	else if(flag2){
 		printf("req > available!! Deny");
 		sem_post(&m);
 		return -1;
@@ -116,7 +125,7 @@ int request_resources(int customer_number, int request[]){
 
 		if(safetyAlgorithm(pavailable,pneed,pallocated)){
 			for(r=0; r<NUMBER_OF_RESOURCES; r++){
-			available[r] = pavailable[r];
+				available[r] = pavailable[r];
 			}
 			Need=pneed;
 			Allocated=pallocated;
