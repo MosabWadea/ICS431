@@ -5,7 +5,7 @@
 #include <time.h>
 #include <sys/wait.h>
 #include <semaphore.h>
-#define NUMBER_OF_CUSTOMERS 5
+#define NUMBER_OF_CUSTOMERS 1
 #define NUMBER_OF_RESOURCES 3
 
 typedef struct
@@ -53,12 +53,10 @@ void loadAllocated(){
 }
 
 
-////// Saftey Algorithem
+///////////////////////    Saftey Algorithem     ////////////////////////////////
 int safetyAlgorithm(int work[],Resources need[], Resources allocated[]){
 	int finish[NUMBER_OF_CUSTOMERS];
-	int i, j;
-	int k;
-	int flag = 1;
+	int i, j, k, flag;
 	
 	//init finish array
 	for(i=0;i<NUMBER_OF_CUSTOMERS;i++){
@@ -68,13 +66,16 @@ int safetyAlgorithm(int work[],Resources need[], Resources allocated[]){
 	//safety algorithm
 	for(i=0;i<NUMBER_OF_CUSTOMERS;i++){
 		for(j=0; j<NUMBER_OF_CUSTOMERS; j++){
+			flag = 1;
+			//printf("\t########## i= %d -- j= %d\n", i, j);
 			for(k=0; k<NUMBER_OF_RESOURCES; k++){
+				//printf("\t\t########## need[%d] = %d -- work = %d\n", k, need[j].resource[k], work[k]);
 				if(need[j].resource[k]<=work[k]){
 					flag = 0;
 					break;
 				}
-			}		
-			if(finish[j]==0 && flag){
+			}
+			if(finish[j]==0 && !flag){
 				int m;
 				for(m=0; m<NUMBER_OF_RESOURCES; m++)
 					work[m] += allocated[j].resource[m];
@@ -88,10 +89,13 @@ int safetyAlgorithm(int work[],Resources need[], Resources allocated[]){
 	int ret = 1;
 	for(i=0; i<NUMBER_OF_CUSTOMERS; i++){
 		ret = ret * finish[i];
+		//printf("\t\t\t########## finish = %d -- ret = %d\n", finish[i], ret);
 	}
 	
 	return ret;
 }
+//////////////////////////////////////////////////////////////
+
 
 
 ////// Banker's Algorithem
@@ -102,6 +106,7 @@ int request_resources(int customer_number, int request[]){
 	int x;
 	int flag1, flag2;
 	for(x=0; x<NUMBER_OF_RESOURCES; x++){
+		//printf("\t\t###### req = %d -- need = %d -- available = %d \n", request[x], Need[cn].resource[x], available[x]);
 		flag1 = 0;
 		flag2 = 0;
 		if(request[x]>Need[cn].resource[x])
@@ -130,24 +135,32 @@ int request_resources(int customer_number, int request[]){
 			pneed[t] = Need[t];
 			pallocated[t]=Allocated[t];
 		}
+		
 		//populating the pretending arrays
 		for(r=0; r<NUMBER_OF_RESOURCES; r++){
 			pavailable[r] = available[r] - request[r];
 			pneed[cn].resource[r] = Need[cn].resource[r] - request[r];
 			pallocated[cn].resource[r] = Allocated[cn].resource[r] + request[r];
+			//printf("\t\t###### pavailable = %d := available = %d - request = %d \n", pavailable[r], available[r], request[r]);
+			//printf("\t\t###### pneed = %d := Need = %d - request = %d \n", pneed[cn].resource[r], Need[cn].resource[r], request[r]);
+			//printf("\t\t###### pallocated = %d := Allocated = %d + request = %d \n", pallocated[cn].resource[r], Allocated[cn].resource[r], request[r]);
 		}		
 
-		if(!safetyAlgorithm(pavailable,pneed,pallocated)){
+		if(safetyAlgorithm(pavailable,pneed,pallocated)){
 			for(r=0; r<NUMBER_OF_RESOURCES; r++){
 				available[r] = pavailable[r];
+				printf("\t\t##### available= %d -- pavailable= %d\n", available[r], pavailable[r]);
 			}
 			for(t=0;t<NUMBER_OF_CUSTOMERS;t++){
-			Need[t] = pneed[t];
-			Allocated[t]=pallocated[t];
-		}
+				for(r=0; r<NUMBER_OF_RESOURCES; r++){
+					available[r] = pavailable[r];
+					Need[cn].resource[r] = pneed[cn].resource[r];
+					Allocated[cn].resource[r] = pallocated[cn].resource[r];
+				}
+			}
 			printf("THE REQUEST WAS GRANTED FOR CUSTOMER %d.\n",cn);
 			for(r=0; r<NUMBER_OF_RESOURCES; r++){
-				printf(" Need[%d]= %d\n",r,Need[r]);
+				printf("Customer %d Need[%d]= %d\n",cn,r,Need[cn].resource[r]);
 			}
 			sem_post(&m);
 			return 0;
@@ -191,16 +204,23 @@ void *run(void *t)
 	do{	
 	
 		for(i=0;i<NUMBER_OF_RESOURCES;i++){
-			request[i]=((rand()%10)%Need[x].resource[i])+1;
-			printf("Customer %d : Request [%d] = %d\n",x,i,request[i]);
+			printf("~ again in the loop\n");
+			if(Need[x].resource[i]){
+				request[i]=(rand()%Need[x].resource[i]);
+				printf("Customer %d : Request [%d] = %d\n",x,i,request[i]);
+			}
 		}
+		printf("\t#out of the loop\n");
 		
+		printf("customer number %d is entering the CS\n\n", x);
 		if(!request_resources(x,request)){
 			printf("Customer %d request is for resourcses of type 1=%d, type2=%d, type3=%d is granted\n",x,request[0],request[1],request[2]);
 			sleep(2);
 			for(i=0;i<NUMBER_OF_RESOURCES;i++){
-				release[i] =( (rand()%10)%Allocated[x].resource[i])+1;
-				printf("release%d = %d\t allocate = %d \n", i, release[i], Allocated[x].resource[i]);
+				if(Allocated[x].resource[i]){
+					release[i] =(rand()%Allocated[x].resource[i]);
+					printf("release%d = %d\t allocate = %d \n", i, release[i], Allocated[x].resource[i]);
+				}
 			}
 			release_resources(x,release);
 		}
@@ -240,19 +260,17 @@ int main(int argc, char *argv[]){
 	//init semaphore
 	sem_init(&m, 0, 1);
 	printf("****\n");
-	for(t = 0; t < NUMBER_OF_CUSTOMERS; t++)
-	{
+	for(t = 0; t < NUMBER_OF_CUSTOMERS; t++){
 		printf("Creating customer %d\n", t);
 		pthread_create(&th[t], NULL, run, (void *)t);
+		
 	}
 	
-	for(t = 0; t < NUMBER_OF_CUSTOMERS; t++)
-	{
-		void* n;
-		pthread_join(th[t], &n);
+	for(t = 0; t < NUMBER_OF_CUSTOMERS; t++){
+		pthread_join(th[t], NULL);
 	
 	}
-	
+
 	pthread_exit(NULL);
 
 	//release sem
